@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Huawei Cloud Terminal | Web Gateway</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg-base: #0b0d13;
+      --bg-surface: #131722;
+      --bg-elevated: #1b2030;
+      --border: #262c42;
+      --text-main: #e2e8f0;
+      --text-muted: #848ca3;
+      --brand: #00d2ff;
+      --brand-glow: rgba(0, 210, 255, 0.25);
+      --success: #10b981;
+      --danger: #ef4444;
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .brand span { color: var(--brand); font-weight: 400; }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+      transition: all 0.3s ease;
+    }
+
+    .dot.connected {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      padding: 16px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    aside { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group { margin-bottom: 10px; }
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .input-field, select.input-field {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px var(--brand-glow);
+    }
+
+    .row-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--brand); color: #000; box-shadow: 0 0 12px var(--brand-glow); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-danger { background: var(--danger); color: #fff; }
+
+    .btn-sec {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--brand);
+      padding: 8px;
+      font-size: 0.75rem;
+      margin-top: 6px;
+    }
+    .btn-sec:hover { background: var(--border); }
+
+    .macro-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .list-item { display: flex; align-items: center; gap: 6px; }
+
+    .item-btn {
+      flex: 1;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-btn:hover {
+      border-color: var(--brand);
+      background: rgba(0, 210, 255, 0.05);
+    }
+
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .del-btn:hover { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      height: 480px;
+    }
+
+    .terminal-toolbar {
+      background: #10131c;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .term-tabs {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--brand);
+    }
+
+    .term-actions { display: flex; gap: 6px; }
+
+    .action-chip {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .action-chip:hover { color: #fff; border-color: var(--brand); }
+
+    #terminal-wrapper {
+      flex: 1;
+      background: #000;
+      padding: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .xterm { height: 100%; padding: 2px; }
+
+    @media (max-width: 900px) {
+      .app-container { grid-template-columns: 1fr; padding: 10px; gap: 12px; }
+      main { height: 340px; }
+      .list-container { max-height: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i data-lucide="terminal" style="color: var(--brand); width: 18px; height: 18px;"></i>
+      Huawei VRP <span>Web Console</span>
+    </div>
+    <div class="status-badge">
+      <div id="statusDot" class="dot"></div>
+      <span id="statusText">Desconectado</span>
+    </div>
+  </header>
+
+  <div class="app-container">
+    
+    <aside>
+      <div class="card">
+        <div class="card-title">
+          <span><i data-lucide="server" style="width: 14px; height: 14px;"></i> Switch Guardado</span>
+          <button class="del-btn" title="Apagar switch selecionado" onclick="deletarSwitchSelecionado()">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+
+        <div class="form-group">
+          <select id="switchSelect" class="input-field" onchange="selecionarSwitch()">
+            <option value="">-- A carregar switches... --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Identificação / Nome</label>
+          <input id="swName" class="input-field" placeholder="Ex: Core-POP-Centro">
+        </div>
+
+        <div class="form-group">
+          <label>Host / IP</label>
+          <input id="swHost" class="input-field" placeholder="Ex: 10.10.10.2">
+        </div>
+
+        <div class="row-inputs">
+          <div class="form-group">
+            <label>Utilizador</label>
+            <input id="swUser" class="input-field" value="admin">
+          </div>
+          <div class="form-group">
+            <label>Porta</label>
+            <input id="swPort" class="input-field" value="22" type="number">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Palavra-passe</label>
+          <input id="swPass" class="input-field" type="password" placeholder="••••••••">
+        </div>
+
+        <button id="btnConnect" class="btn btn-primary" onclick="toggleConnection()">
+          <i data-lucide="radio" style="width: 16px; height: 16px;"></i> Conectar
+        </button>
+
+        <button class="btn btn-sec" onclick="salvarNovoSwitch()">
+          <i data-lucide="save" style="width: 14px; height: 14px;"></i> Guardar Switch na BD
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="zap" style="width: 14px; height: 14px;"></i> Macros de Comandos
+        </div>
+
+        <div class="macro-form">
+          <input id="macroName" class="input-field" placeholder="Nome (Ex: Ver VLANs)">
+          <input id="macroCmd" class="input-field" placeholder="Comando (Ex: display vlan)">
+          <button class="btn btn-sec" onclick="criarMacro()">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Guardar Macro
+          </button>
+        </div>
+
+        <div id="macroList" class="list-container"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="terminal-toolbar">
+        <div class="term-tabs">
+          <i data-lucide="activity" style="width: 14px; height: 14px;"></i>
+          <span id="termSessionTitle">Sessão: Inativa</span>
+        </div>
+        <div class="term-actions">
+          <button class="action-chip" onclick="sendSignal('\x03')">Ctrl+C</button>
+          <button class="action-chip" onclick="sendSignal('\t')">TAB</button>
+          <button class="action-chip" onclick="term.clear()">Limpar</button>
+        </div>
+      </div>
+      <div id="terminal-wrapper"></div>
+    </main>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+  <script>
+    lucide.createIcons();
+
+    // Deteta automaticamente se está em localhost ou remoto
+    const API_HOST = (window.location.hostname && window.location.hostname !== '') ? `${window.location.hostname}:8000` : '127.0.0.1:8000';
+    const API_BASE = `http://${API_HOST}`;
+    const WS_BASE = `ws://${API_HOST}`;
+
+    const term = new Terminal({
+      cursorBlink: true,
+      cursorStyle: 'block',
+      fontSize: 12,
+      fontFamily: 'Fira Code, monospace',
+      convertEol: true,
+      theme: {
+        background: '#000000',
+        foreground: '#e2e8f0',
+        cursor: '#00d2ff',
+        selectionBackground: 'rgba(0, 210, 255, 0.3)',
+      }
+    });
+
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(document.getElementById('terminal-wrapper'));
+
+    function resizeTerminal() { setTimeout(() => fitAddon.fit(), 50); }
+    resizeTerminal();
+    window.addEventListener('resize', resizeTerminal);
+
+    term.writeln('\x1b[36m=== Huawei VRP Cloud Console ===\x1b[0m\r\n');
+
+    let socket = null;
+    let isConnected = false;
+    let switchesCarregados = [];
+
+    term.onData((data) => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(data);
+      }
+    });
+
+    // --- CARREGAR DADOS ---
+    async function carregarSwitches() {
+      try {
+        const res = await fetch(`${API_BASE}/api/switches`);
+        if (!res.ok) throw new Error("Erro na API");
+        switchesCarregados = await res.json();
+        const select = document.getElementById('switchSelect');
+        select.innerHTML = '<option value="">-- Selecione ou preencha abaixo --</option>';
+        
+        switchesCarregados.forEach(sw => {
+          const opt = document.createElement('option');
+          opt.value = sw.id;
+          opt.innerText = `${sw.name} (${sw.host})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.warn("Não foi possível carregar switches da API:", err);
+      }
+    }
+
+    function selecionarSwitch() {
+      const id = document.getElementById('switchSelect').value;
+      const sw = switchesCarregados.find(s => s.id == id);
+      if (sw) {
+        document.getElementById('swName').value = sw.name;
+        document.getElementById('swHost').value = sw.host;
+        document.getElementById('swUser').value = sw.default_user;
+        document.getElementById('swPort').value = sw.port;
+      }
+    }
+
+    async function salvarNovoSwitch() {
+      const name = document.getElementById('swName').value.trim();
+      const host = document.getElementById('swHost').value.trim();
+      const default_user = document.getElementById('swUser').value.trim() || 'admin';
+      const port = parseInt(document.getElementById('swPort').value) || 22;
+
+      if (!name || !host) {
+        alert("Preencha Nome e IP do Switch.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/switches`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, host, default_user, port })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || "Erro ao guardar");
+        }
+        alert("Switch guardado com sucesso!");
+        carregarSwitches();
+      } catch (err) {
+        alert(`Erro: ${err.message}`);
+      }
+    }
+
+    async function deletarSwitchSelecionado() {
+      const id = document.getElementById('switchSelect').value;
+      if (!id) return alert("Selecione um switch para apagar.");
+      if (!confirm("Deseja apagar este switch?")) return;
+
+      try {
+        await fetch(`${API_BASE}/api/switches/${id}`, { method: 'DELETE' });
+        carregarSwitches();
+        document.getElementById('swName').value = '';
+        document.getElementById('swHost').value = '';
+      } catch (err) {
+        alert("Erro ao remover switch.");
+      }
+    }
+
+    async function carregarMacros() {
+      try {
+        const res = await fetch(`${API_BASE}/api/macros`);
+        if (!res.ok) throw new Error("Erro na API");
+        const macros = await res.json();
+        const container = document.getElementById('macroList');
+        container.innerHTML = '';
+
+        macros.forEach(m => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+
+          const btn = document.createElement('button');
+          btn.className = 'item-btn';
+          btn.innerHTML = `<span>${m.name}</span> <i data-lucide="play" style="width: 12px; height: 12px;"></i>`;
+          btn.onclick = () => executarMacro(m.command);
+
+          const del = document.createElement('button');
+          del.className = 'del-btn';
+          del.innerHTML = `<i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>`;
+          del.onclick = () => deletarMacro(m.id);
+
+          item.appendChild(btn);
+          item.appendChild(del);
+          container.appendChild(item);
+        });
+        lucide.createIcons();
+      } catch (err) {
+        console.warn("Não foi possível carregar macros da API:", err);
+      }
+    }
+
+    async function criarMacro() {
+      const name = document.getElementById('macroName').value.trim();
+      const command = document.getElementById('macroCmd').value.trim();
+      if (!name || !command) return alert("Preencha Nome e Comando da macro.");
+
+      try {
+        await fetch(`${API_BASE}/api/macros`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, command })
+        });
+        document.getElementById('macroName').value = '';
+        document.getElementById('macroCmd').value = '';
+        carregarMacros();
+      } catch (err) {
+        alert("Erro ao guardar macro.");
+      }
+    }
+
+    async function deletarMacro(id) {
+      try {
+        await fetch(`${API_BASE}/api/macros/${id}`, { method: 'DELETE' });
+        carregarMacros();
+      } catch (err) {
+        alert("Erro ao apagar macro.");
+      }
+    }
+
+    function executarMacro(cmd) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(cmd + '\r');
+        term.focus();
+      } else {
+        alert('Ligue-se primeiro a um equipamento.');
+      }
+    }
+
+    // --- SESSÃO WEBSOCKET ---
+    function toggleConnection() {
+      if (isConnected) disconnect();
+      else connect();
+    }
+
+    function connect() {
+      const host = document.getElementById('swHost').value.trim();
+      const username = document.getElementById('swUser').value.trim();
+      const port = document.getElementById('swPort').value.trim() || 22;
+      const password = document.getElementById('swPass').value;
+
+      if (!host || !username || !password) return alert('Preencha Host, Utilizador e Palavra-passe.');
+
+      updateStatus('connecting', `A ligar...`);
+
+      const wsUrl = `${WS_BASE}/ws/terminal?host=${encodeURIComponent(host)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&port=${encodeURIComponent(port)}`;
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        isConnected = true;
+        updateStatus('connected', `${username}@${host}`);
+        resizeTerminal();
+        term.focus();
+      };
+
+      socket.onmessage = (event) => term.write(event.data);
+      socket.onclose = () => disconnect();
+      socket.onerror = () => {
+        term.writeln('\r\n\x1b[31m[Falha]: Conexão WebSocket recusada.\x1b[0m\r\n');
+        disconnect();
+      };
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+      isConnected = false;
+      updateStatus('disconnected', 'Desconectado');
+    }
+
+    function updateStatus(state, label) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const btn = document.getElementById('btnConnect');
+      const sessionTitle = document.getElementById('termSessionTitle');
+
+      if (state === 'connected') {
+        dot.className = 'dot connected';
+        text.innerText = 'Conectado';
+        sessionTitle.innerText = `Sessão: ${label}`;
+        btn.innerHTML = `<i data-lucide="power-off" style="width: 16px; height: 16px;"></i> Desconectar`;
+        btn.className = 'btn btn-danger';
+      } else if (state === 'connecting') {
+        dot.className = 'dot';
+        text.innerText = 'A ligar...';
+        btn.innerHTML = `<i data-lucide="loader" style="width: 16px; height: 16px;"></i> A ligar...`;
+      } else {
+        dot.className = 'dot';
+        text.innerText = 'Desconectado';
+        sessionTitle.innerText = 'Sessão: Inativa';
+        btn.innerHTML = `<i data-lucide="radio" style="width: 16px; height: 16px;"></i> Conectar`;
+        btn.className = 'btn btn-primary';
+      }
+      lucide.createIcons();
+    }
+
+    function sendSignal(sig) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(sig);
+        term.focus();
+      }
+    }
+
+    // Inicialização direta
+    carregarSwitches();
+    carregarMacros();
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Banco de dados SQLite local (NUNCA subir com IPs reais salvos)
+*.db
+terminal_data.db
+
+# Ambiente Virtual
+venv/
+env/
+ENV/
+
+# Caches do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Configurações de IDEs e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Scripts de automação local com caminhos absolutos de usuário
+*.vbs
+terminal_audit.log
